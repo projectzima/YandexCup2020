@@ -1,70 +1,95 @@
-massive_size = input()
-massive_size = massive_size.split()
-massive_a_size = int(massive_size[0])
-massive_b_size = int(massive_size[1])
-massive_a = input()
-massive_a = massive_a.split()
-massive_b = input()
-massive_b = massive_b.split()
-global matrix
-total_summ = 0
+"""
+Логика программы построена на том, что максимальный путь будет из первой точки до первой максимальной строки
+потом до первого максимального столбца, потом до последней МАКСИМАЛЬНОЙ строки(если такая есть),
+потом из неё до последнего столбца(вправо) и до упора вниз
+"""
+
+massive_size = input()  # Получаем из ввода количество строк и столбцов в виде 7 4
+massive_size = massive_size.split()  # Разделяем ввод через пробел, получаем [7,4]
+massive_a_size = int(massive_size[0])  # Записываем количество строк
+massive_b_size = int(massive_size[1])  # Записываем количество столбцов
+massive_a = input()  # Получаем из ввода значения строк в виде 0 7 1 7 6 7 6
+massive_a = massive_a.split()  # Разделяем ввод через пробел, получаем [0,7,1,7,6,7,6]
+massive_b = input()  # Получаем из ввода значения столбцов в виде 4 1 9 7
+massive_b = massive_b.split()  # Разделяем ввод через пробел, получаем [4,1,9,7]
 
 
 def check_for_equal():
-    strings_unique = set(massive_a)  # СЕТ уникальных строк в массиве а(строки)
-    columns_unique = set(massive_b)  # СЕТ уникальных строк в массива б(столбцы)
-    if len(strings_unique) == 1 and len(columns_unique) == 1:  # Если длина обоих сетов равна 1, значит все значения равны
-        default = int(massive_a[0]) * (10 ** 9) + int(massive_b[0])  # Дефолтное значение ячейки
-        total_summ = (default * len(massive_a)) + (default * (len(massive_b) - 1))  # Считаем сумму всей таблицы
-        return total_summ, True
+    """
+    Функция проверяет матрицу на ситуацию, когда все столбцы и строки равны одной и той же цифре
+    Например [1, 1, 1, 1] [1, 1, 1]
+    :return: Функция возвращает в случае если все равны - сумму самого ценного пути и True для триггера
+    Если же значения отличаются - вернет 0 и False для триггера
+    """
+    strings_unique = set(massive_a)  # СЕТ уникальных строк в массиве а(строки) пример [0,7,1,6]
+    columns_unique = set(massive_b)  # СЕТ уникальных строк в массива б(столбцы) пример [4,1,9,7]
+    if len(strings_unique) == 1 and len(
+            columns_unique) == 1:  # Если длина обоих сетов равна 1, значит все значения равны
+        default = int(massive_a[0]) * (10 ** 9) + int(massive_b[0])  # Дефолтное значение ячейки по формуле
+        total_sum = (default * len(massive_a)) + (default * (len(massive_b) - 1))  # Считаем сумму всей таблицы
+        return total_sum, True
     else:
         return 0, False
 
 
-def find_index_for_max_values(massive, index):  # доделать
-    max_value = massive[int(index)]
-    list_of_max_values = []
-    for i in range(len(massive)):
-        if massive[i] == max_value:
-            list_of_max_values.append(i)
-    return list_of_max_values
+def find_index_for_max_values(massive, index):
+    """
+    Функция ищет и записывает ИНДЕКСЫ всех максимальных значений в столбцах либо строках
+    :param massive: На вход принимает список значений столбцов/строк
+    :param index: И индекс первого максимального значения для поиска соответствий
+    :return:  Функция возвращает список индексов всех максимальных значений для введенного массива данных
+    """
+    max_value = massive[int(index)]  # Записываем первое максимальное значение
+    list_of_max_values_indexes = []  # Создаем список для индексов максимальных значений
+    for i in range(len(massive)):  # Перебираем все значения в списке строк или столбцов
+        if massive[i] == max_value:  # Если нашли совпадение
+            list_of_max_values_indexes.append(i)  # Записываем индекс очередного максимального значения
+    return list_of_max_values_indexes
 
 
 def find_max_summ():
-    global total_summ
-    StopRow = massive_a.index(max(massive_a))
-    StopColumn = massive_b.index(max(massive_b))
-    vecIndexStopRow = find_index_for_max_values(massive_a, StopRow)
-    i = 0
-    j = 0
-    for step in range(len(vecIndexStopRow)):
-        StopRow = vecIndexStopRow[step]
-        while i != StopRow:
-            total_summ += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])
-            i += 1
-        while j != StopColumn:
-            total_summ += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])
-            j += 1
-    if StopColumn == j and StopRow == i:
-        while j != len(massive_b):
-            total_summ += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])
-            j += 1
-        j -= 1
-        i += 1
-        while i != len(massive_a):
-            total_summ += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])
-            i += 1
-        return
+    """
+    Главная функция программы, которая суммирует ценность клеток и проходит путь по логике описанной выше
+    :return: Функция возвращает значение суммы пути
+    """
+    total_sum = 0  # Создаем переменную для подсчета суммы пути
+    stop_row_index = massive_a.index(max(massive_a))  # Записываем индекс первой максимальной строки
+    stop_column_index = massive_b.index(max(massive_b))  # Записываем индекс первого максимального столбца
+    index_of_stop_rows = find_index_for_max_values(massive_a, stop_row_index)  # Записываем список индексов максимальных строк
+    i = 0  # Задаем счетчик строк i равным нулю
+    j = 0  # Задаем счетчик столбцов j равным нулю
+    for step in range(len(index_of_stop_rows)):  # Перебираем список индексов максимальных строк
+        stop_row_index = index_of_stop_rows[step]  # Задаем значение индекса стоп строки
+        while i != stop_row_index:  # Пока не доберемся до следующей максимальной строки
+            total_sum += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])  # Суммируем путь
+            i += 1  # Увеличиваем счетчик строк на 1
+        while j != stop_column_index:  # Пока не доберемся до следующего максимального столбца
+            total_sum += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])  # Суммируем путь
+            j += 1  # Увеличиваем счетчик столбцов на 1
+    if stop_column_index == j and stop_row_index == i:  # Если в результате перебора добрались до последней максимальной строки и столбца
+        while j != len(massive_b):  # Пока не доберемся до ПОСЛЕДНЕГО столбца (путь вправо)
+            total_sum += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])  # Суммируем путь
+            j += 1  # Увеличиваем счетчик столбцов на 1
+        j -= 1  # Как только дошли до крайнего столбца уменьшаем счетчик столбцов на 1
+        i += 1  # Увеличиваем счетчик строк на 1
+        while i != len(massive_a):  # Пока не дойдем до крайней строки (путь вниз)
+            total_sum += int(massive_a[i]) * 10 ** 9 + int(massive_b[j])  # Суммируем путь
+            i += 1  # Увеличиваем счетчик строк на 1
+        return total_sum
 
 
 def run():
-    total_summ_from_equal, equal = check_for_equal()
-    if equal:
-        print(total_summ_from_equal)
+    """
+    Функция запуска отдельных функций программы
+    :return: Функция ничего не возвращает
+    """
+    total_sum_from_equal, equal = check_for_equal()  # Проверяем ситуацию с одинаковыми значениями столбиков/строк
+    if equal:  # Если значения столбиков/строк одинаковые - выводим сумму пути
+        print(total_sum_from_equal)
         return
-    else:
-        find_max_summ()
-    print(total_summ)
+    else:  # Если значения строк/столбцов разные - запускаем функцию поиска выгодного пути
+        total_sum = find_max_summ()
+    print(total_sum)
 
 
 run()

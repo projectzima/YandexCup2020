@@ -1,44 +1,61 @@
-total_targets = input()
+"""
+Логика программы построена на понимании, что если прямая проходит через центры всех фигур - значит она делит все фигуры
+ровно пополам. Для этого нужно провести линию из самой "маленькой" координаты в самую "большую"
+Иногда функция выходит за пределы времени, но чаще всего - укладывается, попробуйте сдать код несколько раз либо
+оптимизировать, либо сделать свой вариант
+"""
+
+total_targets = input()  # Получаем из ввода количество мишеней
+list_of_points = []  # Создаем список для координат цетров фигур
+error = False  # Создаем триггер ошибки деления мишеней пополам, который по дефолту равен False, или УСПЕХ
 
 
-def slicer():
-    target = input()
-    target = target.split()
-    if target[0] == "0":
+def center_finder():
+    """
+    Функция заполняющая список координат центров фигур
+    """
+    target = input()  # Получаем из ввода мишень в формате 0 1 1 1 или 1 2 2 2 2 2 2 2 2
+    target = target.split()  # Разбираем её через сплит, получаем [0,1,1,1] или [1,2,2,2,2,2,2,2,2]
+    if target[0] == "0":  # Если наша цель - круг, тогда координаты цетральной точки нам уже даны
         x = int(target[2])
         y = int(target[3])
         center_point = [x, y]
-        list_of_points.append(center_point)
-    elif target[0] == "1":
+        list_of_points.append(center_point)  # Добавляем координаты цетра круга в список
+    elif target[0] == "1":  # Если наша цель - прямоугольник/квадрат, тогда вычисляем координаты цетра по формуле
+        # (сумма координат x)/4 + (сумма координат y)/4
         x_point = (int(target[1]) + int(target[3]) + int(target[5]) + int(target[7])) / 4
         y_point = (int(target[2]) + int(target[4]) + int(target[6]) + int(target[8])) / 4
         center_point = [x_point, y_point]
-        list_of_points.append(center_point)
+        list_of_points.append(center_point)  # Записываем координаты центра прямоугольника/квадрата в список
 
 
-list_of_points = []
-for _ in range(int(total_targets)):
-    slicer()
+for _ in range(int(total_targets)):  # Запускаем поиск центров фигур
+    center_finder()
 
+sorted_x = sorted(list_of_points)  # Сортируем список по величине X координат
+lowest_coordinate = sorted_x[0]  # Записываем самую маленькую координату из отсортированного списка
+highest_coordinate = sorted_x[(len(sorted_x) - 1)]  # Записываем самую большую координату из отсортированного списка
 
-sorted_x = sorted(list_of_points)
-lowest_coordinate = sorted_x[0]
-highest_coordinate = sorted_x[(len(sorted_x) - 1)]
-error = False
-for point in sorted_x:
-    if lowest_coordinate[0] < point[0]:
-        break
-    elif lowest_coordinate[1] > point[1]:
-        lowest_coordinate[1] = point[1]
+for point in sorted_x:  # Перебираем центры в отсортированном списке для поиска меньшей координаты как по X так и по Y
+    if lowest_coordinate[0] < point[0]:  # Если в цикле мы дошли до момента когда равных минимальному X координат нет
+        break  # тогда заканчиваем перебор
+    elif lowest_coordinate[1] > point[1]:  # Делаем проверку Y среди равных по X координатам, если наш Y больше
+        lowest_coordinate[1] = point[1]  # Тогда меняем меньшую координату на найденную point[1]
 
-for point in sorted_x:
-    if highest_coordinate[0] > point[0]:
-        break
-    elif highest_coordinate[1] < point[1]:
-        highest_coordinate[1] = point[1]
+for point in sorted_x:  # Перебираем центры в отсортированном списке для поиска большей координаты как по X так и по Y
+    if highest_coordinate[0] > point[0]:  # Если в цикле мы дошли до момента когда равных максимальному X координат нет
+        break  # тогда заканчиваем перебор
+    elif highest_coordinate[1] < point[1]:  # Делаем проверку Y среди равных по X координатам, если наш Y меньше
+        highest_coordinate[1] = point[1]  # Тогда меняем бОльшую координату на найденную point[1]
 
-for point in sorted_x:
-    first = point[0] - lowest_coordinate[0]
+for point in sorted_x:  # Перебираем все центры в отсортированном списке ВНИМАНИЕ КОСТЫЛЬ!!!
+    """
+    Формула для проверки прохождения прямой через центр мишени 
+    x центра мишени - x самой маленькой координаты / x самой большой координаты - x самой маленькой координаты
+    должно быть равно
+    y центра мишени - y самой маленькой координаты / y самой большой координаты - y самой маленькой координаты
+    """
+    first = point[0] - lowest_coordinate[0]  # КОСТЫЛЬ !!! Если разница любого элемента формулы равна 0, меняем его на 1
     second = highest_coordinate[0] - lowest_coordinate[0]
     third = point[1] - lowest_coordinate[1]
     fourth = highest_coordinate[1] - lowest_coordinate[1]
@@ -51,15 +68,10 @@ for point in sorted_x:
     if fourth == 0:
         fourth = 1
 
-    if first / second != third / fourth:
-        print("No")
-        error = True
-        break
+    if first / second != third / fourth:  # Если по формуле прямая не проходит через центр любой из мишеней
+        print("No")  # Выводим No
+        error = True  # Ставим триггер ошибки равный True
+        break  # Прекращаем цикл
 
-if error is False:
+if error is False:  # Если формула для каждого центра отработала корректно - выводим Yes
     print("Yes")
-
-
-
-
-
