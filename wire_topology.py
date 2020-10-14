@@ -24,9 +24,11 @@
 """
 
 """
-Логика решения построена на наблюдениях, в которых потенциальные вершины для хранилищ имеют
-глубину(максимальное расстояние до крайних точек) больше чем у центра графа на 2
-Однако такое решение не верно
+Логика решения построена на делении графа на 3 части, сначала надвое центром(или двумя центрами), затем
+равноудаленными от центра и от крайних точек графа вершинами. Итого мы имеем что то вроде 0---1---1---1---0  где 1 это
+вершина-делитель. В нечетном графе хранилищами становятся какие-нибудь соседи крайних делителей. Итого перед алгоритмом 
+Дейкстры мы имеем список пар индексов потенциальных хранилищ, для которых мы просчитываем ненадежность. Это позволяет
+не проводить огромных вычислений двигаясь в стороны от центра, а сразу вычислять ненадежность из нужных вершин
 Это практически классическая минимаксная задача размещения, только в интернете решают её для 1 центра, а мы решаем
 для двух центров(часто приводят в пример задачу как разместить центры МЧС или Скорой помощи в городе, чтобы сократить
 максимальное расстояние до каждого жителя)
@@ -34,6 +36,7 @@
 остальным
 """
 def dijkstra_algo(computer):
+    print("Запустили dijkstra_algo")
     """
     Алгоритм Дейкстры для поиска минимального пути от целевой вершины графа до всех остальных
     :param computer: На вход принимается один компьютер из пары, которую алгоритм посчитал потенциальной для хранилища
@@ -94,10 +97,12 @@ def fill_matrix():
 
 
 def check_all_computers_longest_way():
+    print("Запустили check_all_computers_longest_way")
     """
     Функция просчитывает лямбду/максимальную глубину/длину пути до самой дальней точки
     Точка или точки у которых будет самое маленькое максимальное значение этой длины - будут центрами или центром графа
-    Потенциальные хранилища по наблюдениям имеют глубину центра + 2, но видимо это не работает на больших графах
+    Потенциальные хранилища находятся на расстоянии половины длины от центра до крайней точки с округлением вниз,
+    То есть если длина от центра до крайней точки равна 5, новый делитель графа будет на расстоянии 2 шагов от центра
     """
     global max_depth
     depths_list = []
@@ -112,10 +117,12 @@ def check_all_computers_longest_way():
         depths_list.append([max_depth, i])
         max_depth = 0
     depths_list.sort()
+    # print(depths_list)
     find_potential_storage(depths_list)
 
 
 def depth_find_recursion(index, connection_matrix, visited_computers_list, depth):
+    print("Запустили depth_find_recursion")
     """
     Рекурсия для поиска глубины
     :param index: принимает на вход индекс точки, от которой считается глубина
@@ -132,25 +139,63 @@ def depth_find_recursion(index, connection_matrix, visited_computers_list, depth
     if max_depth < depth:
         max_depth = depth
 
+def other_centres_finder_recursion(center_index, connection_matrix, visited_computers_list, distance_to_other_centres, depth):
+    print("Запустили other_centres_finder_recursion")
+    global other_centres_indexes_list
+    if depth == distance_to_other_centres:
+        other_centres_indexes_list.append(center_index)
+        return
+    for j in range(total_computers):
+        if connection_matrix[center_index][j]:
+            if not visited_computers_list[j]:
+                visited_computers_list[j] = 1
+                other_centres_finder_recursion(j, connection_matrix, visited_computers_list, distance_to_other_centres, depth + 1)
+
+
 
 def find_potential_storage(depths_list):
+    print("Запустили find_potential_storage")
     """
     Функция ищет вершины графа которые могли бы стать потенциальными хранилищами
+    Логика такая, что мы берем одну или две вершины
+    Потом мы делим граф на три части, крайние делители будут потенциальными хранилищами, но только для четного графа
+    для нечетного графа мы дополнительно добавляем в список все соседние к делителям вершины
+    В итоге мы получаем список индексов потенциальных хранилищ, и не тратим огромные ресурсы каким бы большим не был граф
     :param depths_list: Функция принимает на вход список глубин для каждой точки
     """
-    potential_storage_list = []
-    depth = 0
-    i = 0
-    while depth != 3 and i < len(depths_list) - 1:
-        potential_storage_list.append(depths_list[i][1])
-        if depths_list[i][0] != depths_list[i + 1][0]:
-            depth += 1
-        i += 1
-    # print(potential_storage_list)
-    check_all_pairs_for_reliability(potential_storage_list)
+    DEPTH = 1
+    global other_centres_indexes_list
+    if int(depths_list[0][0]) != (depths_list[1][0]):
+        centres_list = [depths_list[0]]
+    else:
+        centres_list = [depths_list[0], depths_list[1]]
+    visited_computers_list = []
+    distance_to_other_centres = int(depths_list[0][0]) // 2
+    for i in range(total_computers):
+        visited_computers_list.append([])
+    for i in centres_list:
+        for x in range(total_computers):
+            visited_computers_list[x] = 0
+        visited_computers_list[i[1]] = 1
+        other_centres_finder_recursion(i[1], connection_matrix, visited_computers_list, distance_to_other_centres, 0)
+    # print(other_centres_indexes_list)
+    # print(centres_list)
+    other_centres_for_indexation = []
+    other_centres_for_indexation.extend(other_centres_indexes_list)
+    for i in other_centres_for_indexation:
+        for x in range(total_computers):
+            visited_computers_list[x] = 0
+        visited_computers_list[i] = 1
+        other_centres_finder_recursion(i, connection_matrix, visited_computers_list, DEPTH, 0)
+    # print(other_centres_indexes_list)
+    other_centres_indexes_set = set(other_centres_indexes_list)
+    other_centres_indexes_list = list(other_centres_indexes_set)
+    print(other_centres_indexes_list)
+    check_all_pairs_for_reliability(other_centres_indexes_list)
 
 
 def check_computers_in_list(computer_pairs_list, potential_storages):
+    print("Запустили check_computers_in_list")
     """
     Функция проверяет нет ли зеркальной пары, дабы не выполнять в будущем для неё тяжеловесные вычисления
     :param computer_pairs_list: На вход принимается список пар
@@ -165,6 +210,7 @@ def check_computers_in_list(computer_pairs_list, potential_storages):
 
 
 def check_all_pairs_for_reliability(potential_storage_list):
+    print("Запустили check_all_pairs_for_reliability")
     """
     Функция проверяет ненадежность каждого потенциального варианта пар для роли хранилищ
     :param potential_storage_list: На вход принимается список потенциальных пар
@@ -201,6 +247,7 @@ def check_all_pairs_for_reliability(potential_storage_list):
 total_computers = input()
 total_computers = int(total_computers)
 connection_matrix = []
+other_centres_indexes_list = []
 max_depth = 0
 make_matrix()
 fill_matrix()
