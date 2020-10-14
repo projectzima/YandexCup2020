@@ -26,9 +26,7 @@
 """
 Логика решения построена на делении графа на 3 части, сначала надвое центром(или двумя центрами), затем
 равноудаленными от центра и от крайних точек графа вершинами. Итого мы имеем что то вроде 0---1---1---1---0  где 1 это
-вершина-делитель. В нечетном графе хранилищами становятся какие-нибудь соседи крайних делителей. Итого перед алгоритмом 
-Дейкстры мы имеем список пар индексов потенциальных хранилищ, для которых мы просчитываем ненадежность. Это позволяет
-не проводить огромных вычислений двигаясь в стороны от центра, а сразу вычислять ненадежность из нужных вершин
+вершина-делитель. В нечетном графе хранилищами становятся какие-нибудь соседи крайних делителей.
 Это практически классическая минимаксная задача размещения, только в интернете решают её для 1 центра, а мы решаем
 для двух центров(часто приводят в пример задачу как разместить центры МЧС или Скорой помощи в городе, чтобы сократить
 максимальное расстояние до каждого жителя)
@@ -115,10 +113,8 @@ def check_all_computers_longest_way():
     max_steps = 200000
     counter = 0
     for steps_list in all_steps_list:
-        if max(steps_list) < max_steps:
+        if max(steps_list) <= max_steps:
             max_steps = max(steps_list)
-            depths_list.append([max_steps, counter])
-        elif max(steps_list) == max_steps:
             depths_list.append([max_steps, counter])
         counter += 1
     depths_list.sort()
@@ -126,19 +122,41 @@ def check_all_computers_longest_way():
     find_potential_storage(depths_list)
 
 
-def other_centres_finder_recursion(center_index, connection_matrix, visited_computers_list, distance_to_other_centres,
-                                   depth):
+def other_centres_neighbor_finder_recursion(center_index, connection_matrix, visited_computers_list, DEPTH, depth):
+    """
+    Рекурсионный поиск соседних клеток для новых центров
+    :param center_index: На вход принимается индекс центра соседей которого мы будем искать
+    :param connection_matrix: На вход принимается матрица соединений
+    :param visited_computers_list: На вход принимается список посещенных компьютеров
+    :param DEPTH: На вход принимается глубина поиска(1)
+    :param depth: На вход принимается стартовая глубина(0, начинаем с себя)
+    """
     # print("Запустили other_centres_finder_recursion")
     global other_centres_indexes_list
-    if depth == distance_to_other_centres:
+    if depth == DEPTH:
         other_centres_indexes_list.append(center_index)
         return
     for j in range(total_computers):
         if connection_matrix[center_index][j]:
             if not visited_computers_list[j]:
                 visited_computers_list[j] = 1
-                other_centres_finder_recursion(j, connection_matrix, visited_computers_list, distance_to_other_centres,
-                                               depth + 1)
+                other_centres_neighbor_finder_recursion(j, connection_matrix, visited_computers_list, DEPTH, depth + 1)
+
+
+def other_centres_indexes_finder(centres_list, steps_to_new_center):
+    """
+    Функция находит новые центры относительно центра графа, используя уже рассчитанные данные
+    :param centres_list: На вход принимается список центров(с глубиной(но она не нужна))
+    :param steps_to_new_center: На вход принимается количество шагов до новых центров
+    :return:
+    """
+    global other_centres_indexes_list
+    for center in centres_list:
+        counter = 0
+        for steps_count in all_steps_list[center[1]]:
+            if steps_to_new_center == steps_count:
+                other_centres_indexes_list.append(counter)
+            counter += 1
 
 
 def find_potential_storage(depths_list):
@@ -161,24 +179,16 @@ def find_potential_storage(depths_list):
     distance_to_other_centres = int(depths_list[0][0]) // 2
     for i in range(total_computers):
         visited_computers_list.append([])
-    for i in centres_list:
-        for x in range(total_computers):
-            visited_computers_list[x] = 0
-        visited_computers_list[i[1]] = 1
-        other_centres_finder_recursion(i[1], connection_matrix, visited_computers_list, distance_to_other_centres, 0)
-    # print(other_centres_indexes_list)
-    # print(centres_list)
+    other_centres_indexes_finder(centres_list, steps_to_new_center=distance_to_other_centres)
     other_centres_for_indexation = []
     other_centres_for_indexation.extend(other_centres_indexes_list)
     for i in other_centres_for_indexation:
         for x in range(total_computers):
             visited_computers_list[x] = 0
         visited_computers_list[i] = 1
-        other_centres_finder_recursion(i, connection_matrix, visited_computers_list, DEPTH, 0)
-    # print(other_centres_indexes_list)
+        other_centres_neighbor_finder_recursion(i, connection_matrix, visited_computers_list, DEPTH, 0)
     other_centres_indexes_set = set(other_centres_indexes_list)
     other_centres_indexes_list = list(other_centres_indexes_set)
-    # print(other_centres_indexes_list)
     check_all_pairs_for_reliability(other_centres_indexes_list)
 
 
