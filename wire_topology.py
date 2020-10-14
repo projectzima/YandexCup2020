@@ -35,8 +35,10 @@
 Для решения задачи ключевым является алгоритм Дейкстры для поиска самого короткого пути от целевой вершины графа к 
 остальным
 """
+
+
 def dijkstra_algo(computer):
-    print("Запустили dijkstra_algo")
+    # print("Запустили dijkstra_algo")
     """
     Алгоритм Дейкстры для поиска минимального пути от целевой вершины графа до всех остальных
     :param computer: На вход принимается один компьютер из пары, которую алгоритм посчитал потенциальной для хранилища
@@ -97,7 +99,7 @@ def fill_matrix():
 
 
 def check_all_computers_longest_way():
-    print("Запустили check_all_computers_longest_way")
+    # print("Запустили check_all_computers_longest_way")
     """
     Функция просчитывает лямбду/максимальную глубину/длину пути до самой дальней точки
     Точка или точки у которых будет самое маленькое максимальное значение этой длины - будут центрами или центром графа
@@ -105,42 +107,28 @@ def check_all_computers_longest_way():
     То есть если длина от центра до крайней точки равна 5, новый делитель графа будет на расстоянии 2 шагов от центра
     """
     global max_depth
+    global all_steps_list
     depths_list = []
-    visited_computers_list = []
     for i in range(total_computers):
-        visited_computers_list.append([])
-    for i in range(total_computers):
-        for x in range(total_computers):
-            visited_computers_list[x] = 0
-        visited_computers_list[i] = 1
-        depth_find_recursion(i, connection_matrix, visited_computers_list, 0)
-        depths_list.append([max_depth, i])
-        max_depth = 0
+        steps_from_computer_to_other_computers = dijkstra_algo(i)
+        all_steps_list.append(steps_from_computer_to_other_computers)
+    max_steps = 200000
+    counter = 0
+    for steps_list in all_steps_list:
+        if max(steps_list) < max_steps:
+            max_steps = max(steps_list)
+            depths_list.append([max_steps, counter])
+        elif max(steps_list) == max_steps:
+            depths_list.append([max_steps, counter])
+        counter += 1
     depths_list.sort()
     # print(depths_list)
     find_potential_storage(depths_list)
 
 
-def depth_find_recursion(index, connection_matrix, visited_computers_list, depth):
-    print("Запустили depth_find_recursion")
-    """
-    Рекурсия для поиска глубины
-    :param index: принимает на вход индекс точки, от которой считается глубина
-    :param connection_matrix: принимает на вход матрицу соединений
-    :param visited_computers_list: принимает на вход уже посещенные компьютеры
-    :param depth: принимает на вход глубину поиска, чтобы каждую итерацию увеличивать её
-    """
-    global max_depth
-    for j in range(total_computers):
-        if connection_matrix[index][j]:
-            if not visited_computers_list[j]:
-                visited_computers_list[j] = 1
-                depth_find_recursion(j, connection_matrix, visited_computers_list, depth + 1)
-    if max_depth < depth:
-        max_depth = depth
-
-def other_centres_finder_recursion(center_index, connection_matrix, visited_computers_list, distance_to_other_centres, depth):
-    print("Запустили other_centres_finder_recursion")
+def other_centres_finder_recursion(center_index, connection_matrix, visited_computers_list, distance_to_other_centres,
+                                   depth):
+    # print("Запустили other_centres_finder_recursion")
     global other_centres_indexes_list
     if depth == distance_to_other_centres:
         other_centres_indexes_list.append(center_index)
@@ -149,17 +137,17 @@ def other_centres_finder_recursion(center_index, connection_matrix, visited_comp
         if connection_matrix[center_index][j]:
             if not visited_computers_list[j]:
                 visited_computers_list[j] = 1
-                other_centres_finder_recursion(j, connection_matrix, visited_computers_list, distance_to_other_centres, depth + 1)
-
+                other_centres_finder_recursion(j, connection_matrix, visited_computers_list, distance_to_other_centres,
+                                               depth + 1)
 
 
 def find_potential_storage(depths_list):
-    print("Запустили find_potential_storage")
+    # print("Запустили find_potential_storage")
     """
     Функция ищет вершины графа которые могли бы стать потенциальными хранилищами
     Логика такая, что мы берем одну или две вершины
-    Потом мы делим граф на три части, крайние делители будут потенциальными хранилищами, но только для четного графа
-    для нечетного графа мы дополнительно добавляем в список все соседние к делителям вершины
+    Потом мы делим граф на три части, крайние делители будут потенциальными хранилищами, для которых мы дополнительно
+    добавляем в список все соседние к делителям вершины(они тоже могут быть потенциальными хранилищами)
     В итоге мы получаем список индексов потенциальных хранилищ, и не тратим огромные ресурсы каким бы большим не был граф
     :param depths_list: Функция принимает на вход список глубин для каждой точки
     """
@@ -190,32 +178,16 @@ def find_potential_storage(depths_list):
     # print(other_centres_indexes_list)
     other_centres_indexes_set = set(other_centres_indexes_list)
     other_centres_indexes_list = list(other_centres_indexes_set)
-    print(other_centres_indexes_list)
+    # print(other_centres_indexes_list)
     check_all_pairs_for_reliability(other_centres_indexes_list)
 
 
-def check_computers_in_list(computer_pairs_list, potential_storages):
-    print("Запустили check_computers_in_list")
-    """
-    Функция проверяет нет ли зеркальной пары, дабы не выполнять в будущем для неё тяжеловесные вычисления
-    :param computer_pairs_list: На вход принимается список пар
-    :param potential_storages: На вход принимается пара потенциальных хранилищ
-    :return: Функция возвращает True если такая пара уже есть в списке и False если такой пары в списке нет
-    """
-    for i in range(len(computer_pairs_list)):
-        if computer_pairs_list[i][0] == potential_storages[0]:
-            if computer_pairs_list[i][1] == potential_storages[1]:
-                return True
-    return False
-
-
 def check_all_pairs_for_reliability(potential_storage_list):
-    print("Запустили check_all_pairs_for_reliability")
+    # print("Запустили check_all_pairs_for_reliability")
     """
     Функция проверяет ненадежность каждого потенциального варианта пар для роли хранилищ
     :param potential_storage_list: На вход принимается список потенциальных пар
     """
-    computer_pairs_list = []
     computer_pairs_reliability_dict = {}
     for i in range(len(potential_storage_list)):
         for j in range(len(potential_storage_list)):
@@ -223,22 +195,19 @@ def check_all_pairs_for_reliability(potential_storage_list):
                 continue
             first_computer = potential_storage_list[i]
             second_computer = potential_storage_list[j]
-            if not check_computers_in_list(computer_pairs_list, [first_computer, second_computer]):
-                computer_pairs_list.append([first_computer, second_computer])
-                computer_pairs_list.append([second_computer, first_computer])
-                first_computer_reliability = dijkstra_algo(first_computer)
-                second_computer_reliability = dijkstra_algo(second_computer)
-                best_reliability_list = []
-                for x in range(len(first_computer_reliability)):
-                    if first_computer_reliability[x] < second_computer_reliability[x]:
-                        best_reliability_list.append(first_computer_reliability[x])
-                    else:
-                        best_reliability_list.append(second_computer_reliability[x])
-                best_reliability_list.sort()
-                # print(f"Для пары выше лучшие пути {best_reliability_list}")
-                # print("")
-                computer_pairs_reliability_dict[best_reliability_list[len(best_reliability_list) - 1]] = [
-                    first_computer + 1, second_computer + 1]
+            first_computer_reliability = all_steps_list[first_computer]
+            second_computer_reliability = all_steps_list[second_computer]
+            best_reliability_list = []
+            for x in range(len(first_computer_reliability)):
+                if first_computer_reliability[x] < second_computer_reliability[x]:
+                    best_reliability_list.append(first_computer_reliability[x])
+                else:
+                    best_reliability_list.append(second_computer_reliability[x])
+            best_reliability_list.sort()
+            # print(f"Для пары{first_computer},{second_computer} лучшие пути {best_reliability_list}")
+            # print("")
+            computer_pairs_reliability_dict[best_reliability_list[len(best_reliability_list) - 1]] = [
+                first_computer + 1, second_computer + 1]
     list_keys = list(computer_pairs_reliability_dict.keys())
     list_keys.sort()
     print(computer_pairs_reliability_dict[list_keys[0]][0], computer_pairs_reliability_dict[list_keys[0]][1])
@@ -247,6 +216,7 @@ def check_all_pairs_for_reliability(potential_storage_list):
 total_computers = input()
 total_computers = int(total_computers)
 connection_matrix = []
+all_steps_list = []
 other_centres_indexes_list = []
 max_depth = 0
 make_matrix()
