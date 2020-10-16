@@ -34,43 +34,37 @@
 остальным
 """
 
+import heapq
 
-def dijkstra_algo(computer):
-    # print("Запустили dijkstra_algo")
-    """
-    Алгоритм Дейкстры для поиска минимального пути от целевой вершины графа до всех остальных
-    :param computer: На вход принимается один компьютер из пары, которую алгоритм посчитал потенциальной для хранилища
-    :return: Функция возвращает список шагов от компьютера-хранилища до всех остальных компьютеров
-    """
-    steps_from_computer_to_other_computers = []
-    visited_computers = []
-    MAXWEIGHTVALUE = 200000
-    for i in range(total_computers):
-        steps_from_computer_to_other_computers.append([])
-        visited_computers.append([])
-    for x in range(total_computers):
-        steps_from_computer_to_other_computers[x] = MAXWEIGHTVALUE
-        visited_computers[x] = 1
-    steps_from_computer_to_other_computers[computer] = 0
-    while True:
-        min_value_index = MAXWEIGHTVALUE
-        min_weight_to_computer = MAXWEIGHTVALUE
-        for x in range(total_computers):
-            if visited_computers[x] == 1 and steps_from_computer_to_other_computers[x] < min_weight_to_computer:
-                min_weight_to_computer = steps_from_computer_to_other_computers[x]
-                min_value_index = x
-        if min_value_index != MAXWEIGHTVALUE:
-            for x in range(total_computers):
-                if connection_matrix[min_value_index][x]:
-                    temp_weight = min_weight_to_computer + connection_matrix[min_value_index][x]
-                    if temp_weight < steps_from_computer_to_other_computers[x]:
-                        steps_from_computer_to_other_computers[x] = temp_weight
-            visited_computers[min_value_index] = 0
-        if min_value_index == MAXWEIGHTVALUE:
-            break
 
-    # print(steps_from_computer_to_other_computers, computer_1+1)
-    return steps_from_computer_to_other_computers
+def dijkstra_algo(connections_dict, start):
+    """
+    Алгоритм Дейкстры оптимизированный кучами(стал работать в три раза быстрее, но 14й тест не проходит)
+    :param connections_dict: На вход получаем словарь соединений(список смежности)
+    :param start: На вход принимается компьютер от которого ищутся пути
+    :return: Функция возвращает список путей от компьютера целевого ко всем остальным
+    """
+    INF = 999999999
+    dis = dict((key, INF) for key in connections_dict)  # Начало
+    dis[start] = 0
+    vis = dict((key, False) for key in connections_dict)  # Проверка на посещение, 1 - посещено, 0 - не посещено
+    # Оптимизация кучей
+    pq = []  # Храним отсортированные значения
+    heapq.heappush(pq, [dis[start], start])
+    while len(pq) > 0:
+        v_dis, v = heapq.heappop(pq)  # Точка с наименьшей дистанцией между непосещенными точками и путь до них
+        if vis[v] == True:
+            continue
+        vis[v] = True
+        for node in connections_dict[v]:  # Точки напрямую соединенные с точкой v
+            new_dis = dis[v] + int(connections_dict[v][node])
+            if new_dis < dis[node] and (not vis[node]):  # Если нашли путь короче - записываем его
+                dis[node] = new_dis  # Обновляем дистанцию до точки
+                heapq.heappush(pq, [dis[node], node])
+    list_of_paths = list()
+    for key, value in dis.items():
+        list_of_paths.append(value)
+    return list_of_paths
 
 
 def make_matrix():
@@ -96,8 +90,30 @@ def fill_matrix():
         connection_matrix[second_computer][first_computer] = 1
 
 
+def fill_dictionary_of_connections():
+    global list_of_connections
+    global connections_dict
+    for i in range(total_computers):
+        temp_list = []
+        for j in range(total_computers):
+            if connection_matrix[i][j]:
+                temp_list.append({j: 1})
+        list_of_connections.append(temp_list)
+
+    counter = 0
+    for connections in list_of_connections:
+        temp_dict = {}
+        if len(connections) > 1:
+            for connection in connections:
+                temp_dict.update(connection)
+            connections_dict[counter] = temp_dict
+            counter += 1
+        else:
+            connections_dict[counter] = connections[0]
+            counter += 1
+
+
 def check_all_computers_longest_way():
-    # print("Запустили check_all_computers_longest_way")
     """
     Функция просчитывает лямбду/максимальную глубину/длину пути до самой дальней точки
     Точка или точки у которых будет самое маленькое максимальное значение этой длины - будут центрами или центром графа
@@ -108,7 +124,7 @@ def check_all_computers_longest_way():
     global all_steps_list
     depths_list = []
     for i in range(total_computers):
-        steps_from_computer_to_other_computers = dijkstra_algo(i)
+        steps_from_computer_to_other_computers = dijkstra_algo(connections_dict, i)
         all_steps_list.append(steps_from_computer_to_other_computers)
     max_steps = 200000
     counter = 0
@@ -118,7 +134,6 @@ def check_all_computers_longest_way():
             depths_list.append([max_steps, counter])
         counter += 1
     depths_list.sort()
-    # print(depths_list)
     find_potential_storage(depths_list)
 
 
@@ -131,7 +146,6 @@ def other_centres_neighbor_finder_recursion(center_index, connection_matrix, vis
     :param DEPTH: На вход принимается глубина поиска(1)
     :param depth: На вход принимается стартовая глубина(0, начинаем с себя)
     """
-    # print("Запустили other_centres_finder_recursion")
     global other_centres_indexes_list
     if depth == DEPTH:
         other_centres_indexes_list.append(center_index)
@@ -160,7 +174,6 @@ def other_centres_indexes_finder(centres_list, steps_to_new_center):
 
 
 def find_potential_storage(depths_list):
-    # print("Запустили find_potential_storage")
     """
     Функция ищет вершины графа которые могли бы стать потенциальными хранилищами
     Логика такая, что мы берем одну или две вершины
@@ -193,7 +206,6 @@ def find_potential_storage(depths_list):
 
 
 def check_all_pairs_for_reliability(potential_storage_list):
-    # print("Запустили check_all_pairs_for_reliability")
     """
     Функция проверяет ненадежность каждого потенциального варианта пар для роли хранилищ
     :param potential_storage_list: На вход принимается список потенциальных пар
@@ -214,8 +226,6 @@ def check_all_pairs_for_reliability(potential_storage_list):
                 else:
                     best_reliability_list.append(second_computer_reliability[x])
             best_reliability_list.sort()
-            # print(f"Для пары{first_computer},{second_computer} лучшие пути {best_reliability_list}")
-            # print("")
             computer_pairs_reliability_dict[best_reliability_list[len(best_reliability_list) - 1]] = [
                 first_computer + 1, second_computer + 1]
     list_keys = list(computer_pairs_reliability_dict.keys())
@@ -228,9 +238,12 @@ total_computers = int(total_computers)
 connection_matrix = []
 all_steps_list = []
 other_centres_indexes_list = []
+list_of_connections = []
+connections_dict = {}
 max_depth = 0
 make_matrix()
 fill_matrix()
+fill_dictionary_of_connections()
 if total_computers == 2:
     print(1, 2)
 else:
